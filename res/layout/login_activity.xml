@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+
+    <EditText android:layout_width="300dp"
+              android:layout_height="wrap_content"
+              android:id="@+id/tv_act"
+              android:textSize="20sp"
+              android:digits="1234567890qazwsxedcrfvtgbyhnujmiklopQWERTYUIOPASDFGHJKLZXCVBNM"
+              android:hint="请输入帐号"
+              android:textColor="#ff7d899d"
+              android:layout_centerHorizontal="true"
+              android:layout_marginTop="160dp"
+            />
+
+
+    <EditText android:layout_width="300dp"
+              android:layout_height="wrap_content"
+              android:id="@+id/tv_psd"
+              android:textSize="20sp"
+              android:inputType="textPassword"
+              android:hint="请输入密码"
+              android:textColor="#ff7d899d"
+              android:layout_marginTop="10dp"
+              android:layout_below="@+id/tv_act"
+              android:layout_centerHorizontal="true"
+            />
+    <Button android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@+id/tv_psd"
+            android:id="@+id/bt_login"
+            android:textSize="20sp"
+            android:background="@drawable/button_shape"
+            android:textColor="#ffffff"
+            android:layout_marginTop="30dp"
+            android:text="登录"
+            />
+    <TextView
+            android:layout_below="@id/bt_login"
+            android:layout_alignStart="@id/bt_login"
+            android:textColor="#ff7d899d"
+            android:text="服务器地址配置"
+            android:clickable="true"
+            android:layout_marginTop="20dp"
+            android:onClick="onServerChange"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+</RelativeLayout>

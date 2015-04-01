@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="fill_parent"
+              android:layout_height="fill_parent"
+        >
+    <com.p.autoxj.ScanView
+            android:id="@+id/scan_view"
+            android:layout_above="@+id/bts_layout"
+            android:layout_width="0dp"
+            android:layout_height="0dp"/>
+    <com.baidu.mapapi.map.MapView
+            android:id="@+id/bmapView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clickable="true" />
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:orientation="horizontal"
+            android:id="@+id/bts_layout"
+            android:layout_alignParentBottom="true"
+            android:layout_height="50dp">
+        <Button
+                android:text="复位"
+                android:id="@+id/bt_reset"
+                android:layout_weight="1"
+                android:textColor="#ffffff"
+
+                android:background="@drawable/backcolor_norock"
+
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"/>
+        <Button
+                android:layout_weight="1"
+                android:text="查看"
+                android:id="@+id/bt_see"
+
+                android:textColor="#ffffff"
+                android:background="@drawable/backcolor_norock"
+
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"/>
+        <Button
+                android:id="@+id/bt_upload"
+                android:layout_weight="1"
+                android:text="登录"
+                android:textColor="#ffffff"
+                android:background="@drawable/backcolor_norock"
+
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                />
+        <Button
+                android:id="@+id/bt_mylocation"
+                android:layout_weight="1"
+                android:text="标记"
+                android:textColor="#ffffff"
+                android:background="@drawable/backcolor_norock"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"/>
+
+    </LinearLayout>
+
+</RelativeLayout>
+

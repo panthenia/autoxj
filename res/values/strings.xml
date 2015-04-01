@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">自动巡检工具</string>
+    <string name="upload">上报巡检到的Beacons</string>
+    <string name="reset">巡检状态重置</string>
+    <string name="see_scan">查看巡检到的Beacons</string>
+    <string name="login_preference_name">login_preference</string>
+    <string name="unupload_dbname">unupload.db</string>
+    <string name="create_unupload_beacon_table">create table if not exists unupbeacon
+	    (mac_id text,uuid text, rssi text,  major  text,   minor  text,latitude text, longitude text);
+    </string>
+</resources>

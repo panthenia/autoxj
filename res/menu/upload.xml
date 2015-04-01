@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:tools="http://schemas.android.com/tools"
+      tools:context="com.p.xunjian.Activity.MainActivity"
+        >
+    <item android:id="@+id/action_upload"
+          android:title="@string/upload"
+          android:showAsAction="never" />
+    <item android:id="@+id/action_see"
+          android:title="@string/see_scan"
+          android:showAsAction="never" />
+    <item android:id="@+id/action_reset"
+          android:title="@string/reset"
+          android:showAsAction="never" />
+</menu>

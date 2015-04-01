@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="android-support-v4">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/libs/android-support-v4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/android-support-v7-appcompat.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/android-support-v7-recyclerview.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/BaiduLBS_Android.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/XBeaconSdk.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
