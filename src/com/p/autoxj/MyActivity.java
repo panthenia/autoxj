@@ -11,6 +11,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.*;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -25,13 +26,14 @@ import com.baidu.location.BDLocation;
 import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
+
 import java.util.Collection;
 import java.util.Iterator;
 
 public class MyActivity extends Activity implements
-        com.lef.scanner.IBeaconConsumer{
+        com.lef.scanner.IBeaconConsumer {
     public static final int REDRAW_SCAN_VIEW = 1;
-    public static final int FIND_NEW_BEACON = 2;
+    public static final int LOGIN_SUCCESS = 2;
     public static final int REQUEST_FINISH_SUCCESS = 0;
     public static final int KEY_TIME_OUT = 4;
     public static final int REQUEST_FINISH_FAIL = 3;
@@ -39,9 +41,11 @@ public class MyActivity extends Activity implements
     public static final int UPLOAD_WAIT_FAIL = 6;
     public static final int UPLOAD_TYPE_CHECKED = 7;
     public static final int UPLOAD_TYPE_UNCHECKED = 8;
+    public static final int No_AVILIBLE_NETWORK = 9;
+    public static final int START_UPLOAD = 10;
     private IBeaconManager iBeaconManager;
     ScanView scanView = null;
-    Button btSee,btReset,btUpload,btMyloc;
+    Button btSee, btReset, btUpload, btMyloc, bt_Cloc;
     public LocationClient mLocationClient = null;
     public LocationClientOption locationClientOption = null;
     public MapView mMapView = null;
@@ -59,7 +63,7 @@ public class MyActivity extends Activity implements
                             // 此处设置开发者获取到的方向信息，顺时针0-360
                     .direction(100).latitude(bdLocation.getLatitude())
                     .longitude(bdLocation.getLongitude()).build();
-            if(mBaiduMap != null) {
+            if (mBaiduMap != null) {
 
                 mBaiduMap.setMyLocationData(locData);
                 //mBaiduMap.setMapStatus(MapStatusUpdateFactory.zoomTo(18));
@@ -69,93 +73,96 @@ public class MyActivity extends Activity implements
 //            Log.d("location",bdLocation.getProvince());
         }
     };
-    Handler mhandler = new Handler(){
+    Handler mhandler = new Handler() {
         @Override
         public void handleMessage(final Message msg) {
-            switch (msg.what){
+            switch (msg.what) {
                 case REDRAW_SCAN_VIEW:
                     scanView.rePaint();
                     break;
-                case FIND_NEW_BEACON:
-                    scanView.setFindNum(PublicData.getInstance().beacons.size());
-                    scanView.rePaint();
-
-                    break;
                 case KEY_TIME_OUT:
-                    new AlertDialog.Builder(MyActivity.this)
-                            .setTitle("警告")
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setMessage("登录信息已过期，请重新登录!")
-                            .setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    Intent intent = new Intent(MyActivity.this, LoginActivity.class);
-                                    startActivityForResult(intent, 5);
-                                }
-                            })
-                            .create().show();
+                    Toast.makeText(MyActivity.this, "登录信息超时，正在重新登录！", Toast.LENGTH_LONG).show();
+                    Intent intent = new Intent(MyActivity.this, NetWorkService.class);
+                    intent.putExtra("ActivityName", MyActivity.class.getName());
+                    intent.putExtra("ReuqestType", "login");
+                    startService(intent);
                     break;
                 case REQUEST_FINISH_SUCCESS:
-                    Toast.makeText(MyActivity.this,"巡检数据上报成功！",Toast.LENGTH_LONG).show();
+                    Toast.makeText(MyActivity.this, "巡检数据上报成功！", Toast.LENGTH_LONG).show();
                     break;
                 case REQUEST_FINISH_FAIL:
                     Toast.makeText(MyActivity.this, "巡检数据上报失败！", Toast.LENGTH_LONG).show();
                     break;
+                case No_AVILIBLE_NETWORK:
+                    Toast.makeText(MyActivity.this, "无网络连接！", Toast.LENGTH_SHORT).show();
+                    break;
+                case START_UPLOAD:
+                    Toast.makeText(MyActivity.this, "开始上传！", Toast.LENGTH_SHORT).show();
+                    break;
+                case LOGIN_SUCCESS:
+                    PublicData.getInstance().setLogin(true);
+                    break;
+
             }
             super.handleMessage(msg);
         }
     };
-    public void startDrawSignal(){
+
+//    public void startDrawSignal() {
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                while (true) {
+//                    Message ms = new Message();
+//                    ms.what = REDRAW_SCAN_VIEW;
+//                    mhandler.sendMessage(ms);
+//                    try {
+//                        Thread.sleep(30);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }
+//        }).start();
+//    }
+
+    public void startUploadTHread() {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true){
-                    Message ms = new Message();
-                    ms.what = REDRAW_SCAN_VIEW;
-                    mhandler.sendMessage(ms);
-                    try {
-                        Thread.sleep(30);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }).start();
-    }
-    public void startUploadTHread(){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while(true) {
-
-                    if(PublicData.getInstance().isLogin()) {
-                        if (PublicData.getInstance().isNetworkAvailable()) {
-                            if (PublicData.getInstance().isLogin()) {
-                                Intent intent = new Intent(MyActivity.this, NetWorkService.class);
-                                intent.putExtra("ActivityName", MyActivity.class.getName());
-                                intent.putExtra("ReuqestType", "upload_checked");
-                                startService(intent);
-                                Toast.makeText(MyActivity.this, "开始上传...", Toast.LENGTH_SHORT).show();
-                            } else {
-                                Intent intent = new Intent(MyActivity.this, LoginActivity.class);
-                                startActivityForResult(intent, 5);
-                            }
-
-                        } else {
-                            Toast.makeText(MyActivity.this, "当前无网络连接！", Toast.LENGTH_SHORT).show();
-                        }
-                    }else{
-                        scanView.setLogin(false);
-                    }
+                while (true) {
                     try {
                         Thread.sleep(1000 * 120);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+                    if (PublicData.getInstance().isNetworkAvailable()) {
+                        if (PublicData.getInstance().isLogin()) {
+
+                            Intent intent = new Intent(MyActivity.this, NetWorkService.class);
+                            intent.putExtra("ActivityName", MyActivity.class.getName());
+                            intent.putExtra("ReuqestType", "upload_checked");
+                            startService(intent);
+                            mhandler.sendEmptyMessage(MyActivity.START_UPLOAD);
+                            //Toast.makeText(MyActivity.this, "开始上传...", Toast.LENGTH_SHORT).show();
+                        }else{
+                            Intent intent = new Intent(MyActivity.this, NetWorkService.class);
+                            intent.putExtra("ActivityName", MyActivity.class.getName());
+                            intent.putExtra("ReuqestType", "login");
+                            startService(intent);
+                        }
+
+                    } else {
+                        mhandler.sendEmptyMessage(MyActivity.No_AVILIBLE_NETWORK);
+                        //Toast.makeText(MyActivity.this, "当前无网络连接！", Toast.LENGTH_SHORT).show();
+                    }
+
                 }
+
             }
         }).start();
     }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -173,11 +180,12 @@ public class MyActivity extends Activity implements
         SDKInitializer.initialize(getApplicationContext());
         setContentView(R.layout.myactivity_activity);
         iBeaconManager = IBeaconManager.getInstanceForApplication(this);
-        PublicData.getInstance().getHandlerHashMap().put(MyActivity.class.getName(),mhandler);
-        btReset = (Button)findViewById(R.id.bt_reset);
-        btSee = (Button)findViewById(R.id.bt_see);
+        PublicData.getInstance().getHandlerHashMap().put(MyActivity.class.getName(), mhandler);
+        btReset = (Button) findViewById(R.id.bt_reset);
+        btSee = (Button) findViewById(R.id.bt_see);
         btUpload = (Button)findViewById(R.id.bt_upload);
-        btMyloc = (Button)findViewById(R.id.bt_mylocation);
+        btMyloc = (Button) findViewById(R.id.bt_mylocation);
+        bt_Cloc = (Button) findViewById(R.id.bt_cloc);
         mMapView = (MapView) findViewById(R.id.bmapView);
         mBaiduMap = mMapView.getMap();
         mBaiduMap.setMyLocationEnabled(true);
@@ -187,16 +195,16 @@ public class MyActivity extends Activity implements
         offlineMap.init(new MKOfflineMapListener() {
             @Override
             public void onGetOfflineMapState(int i, int i1) {
-                switch (i){
+                switch (i) {
                     case MKOfflineMap.TYPE_NEW_OFFLINE:
-                        if(i1 > 0){
+                        if (i1 > 0) {
                             offlineMap.importOfflineData();
                         }
                 }
             }
         });
         mLocationClient = new LocationClient(getApplicationContext());     //声明LocationClient类
-        mLocationClient.registerLocationListener( myListener );    //注册监听函数
+        mLocationClient.registerLocationListener(myListener);    //注册监听函数
         locationClientOption = new LocationClientOption();
         locationClientOption.setOpenGps(true);
         locationClientOption.setCoorType("bd09ll");
@@ -221,6 +229,8 @@ public class MyActivity extends Activity implements
                                 PublicData.getInstance().uploadBeaconSet.clear();
                                 scanView.setFindNum(0);
                                 PublicData.getInstance().removeCheckedBeaconInDb();
+                                PublicData.getInstance().freeAllBeaconIcon();
+                                mBaiduMap.clear();
                                 Toast.makeText(MyActivity.this, "状态重置成功！", Toast.LENGTH_SHORT).show();
                             }
                         }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -233,24 +243,36 @@ public class MyActivity extends Activity implements
 
             }
         });
+        bt_Cloc.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mBaiduMap.setMapStatus(MapStatusUpdateFactory.zoomTo(18));
+                mBaiduMap.setMapStatus(MapStatusUpdateFactory.newLatLng(new LatLng(PublicData.getInstance().getLatitude(), PublicData.getInstance().getLongitude())));
+            }
+        });
         btMyloc.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                for(DBIbeancon dbIbeancon:PublicData.getInstance().beacons){
-                    LatLng latLng = new LatLng(Double.valueOf(dbIbeancon.getLatitude()),Double.valueOf(dbIbeancon.getLongitude()));
-                    Bitmap bitmap = dbIbeancon.getBitmap();
+                Log.d("label", "start label");
+                mBaiduMap.clear();
+                for (DBIbeancon dbIbeancon : PublicData.getInstance().beacons) {
+
+                    LatLng latLng = new LatLng(Double.valueOf(dbIbeancon.getLatitude()), Double.valueOf(dbIbeancon.getLongitude()));
                     MarkerOptions options = new MarkerOptions();
-                    options.position(latLng)
-                            .icon(BitmapDescriptorFactory.fromBitmap(PublicData.getInstance().createBeaconLocationBitmap(10))).zIndex(5);
-                    options.perspective(true);
-                    Marker marker = (Marker)mBaiduMap.addOverlay(options);
+                    BitmapDescriptor descriptor = PublicData.getInstance().getBeaconIcon(dbIbeancon);
+                    if (descriptor != null) {
+                        options.position(latLng)
+                                .icon(descriptor).zIndex(5);
+                        Log.d("label", "label a beacon" + latLng.toString());
+                        mBaiduMap.addOverlay(options);
+                    }
                 }
             }
         });
         btSee.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(MyActivity.this,ShowActivity.class);
+                Intent intent = new Intent(MyActivity.this, ShowActivity.class);
                 startActivity(intent);
             }
         });
@@ -259,28 +281,14 @@ public class MyActivity extends Activity implements
             public void onClick(View v) {
                 Intent intent = new Intent(MyActivity.this,LoginActivity.class);
                 startActivityForResult(intent,6);
-//                if(PublicData.getInstance().isNetworkAvailable()) {
-//                    if(PublicData.getInstance().isLogin()){
-//                        Intent intent = new Intent(MyActivity.this, NetWorkService.class);
-//                        intent.putExtra("ActivityName", MyActivity.class.getName());
-//                        intent.putExtra("ReuqestType", "upload_checked");
-//                        startService(intent);
-//                        Toast.makeText(MyActivity.this, "开始上传...", Toast.LENGTH_SHORT).show();
-//                    }else {
-//                        Intent intent = new Intent(MyActivity.this,LoginActivity.class);
-//                        startActivityForResult(intent,5);
-//                    }
-//
-//                }else{
-//                    Toast.makeText(MyActivity.this, "当前无网络连接！", Toast.LENGTH_SHORT).show();
-//                }
             }
         });
         scanView = (ScanView) findViewById(R.id.scan_view);
         scanView.setFindNum(PublicData.getInstance().beacons.size());
-        startDrawSignal();
+
         startUploadTHread();
     }
+
     private void initBluetooth() {
         // TODO Auto-generated method stub
         final BluetoothAdapter blueToothEable = BluetoothAdapter
@@ -310,6 +318,7 @@ public class MyActivity extends Activity implements
             iBeaconManager.bind(this);
         }
     }
+
     @Override
     protected void onPause() {
         // TODO Auto-generated method stub
@@ -319,6 +328,7 @@ public class MyActivity extends Activity implements
         // }
         mMapView.onPause();
     }
+
     @Override
     protected void onResume() {
         // TODO Auto-generated method stub
@@ -336,19 +346,18 @@ public class MyActivity extends Activity implements
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        scanView.setLogin(true);
-        Log.d("return","resultCode"+requestCode);
-        if(requestCode == 5 && resultCode == 5) {
-            Intent intent = new Intent(MyActivity.this, NetWorkService.class);
-            intent.putExtra("ActivityName", MyActivity.class.getName());
-            intent.putExtra("ReuqestType", "upload_checked");
-            startService(intent);
-            Toast.makeText(this, "开始上传...", Toast.LENGTH_SHORT).show();
+        Log.d("return", "resultCode" + requestCode);
+        if (requestCode == 5 && resultCode == 5) {
+//            Intent intent = new Intent(MyActivity.this, NetWorkService.class);
+//            intent.putExtra("ActivityName", MyActivity.class.getName());
+//            intent.putExtra("ReuqestType", "upload_checked");
+//            startService(intent);
+//            Toast.makeText(this, "开始上传...", Toast.LENGTH_SHORT).show();
         }
 
     }
 
-//    @Override
+    //    @Override
 //    public boolean onCreateOptionsMenu(Menu menu) {
 //        MenuInflater inflater = getMenuInflater();
 //        inflater.inflate(R.menu.upload, menu);
@@ -400,7 +409,9 @@ public class MyActivity extends Activity implements
         if (iBeaconManager != null && iBeaconManager.isBound(this)) {
             iBeaconManager.unBind(this);
         }
+        PublicData.getInstance().freeAllBeaconIcon();
     }
+
     @Override
     public void onIBeaconServiceConnect() {
         // TODO Auto-generated method stub
@@ -409,22 +420,47 @@ public class MyActivity extends Activity implements
 
             public void didRangeBeaconsInRegion(Collection<IBeacon> iBeacons,
                                                 Region region) {
-                //if (ProgressBarVisibile) {
-                //    handler.sendEmptyMessage(PROGRESSBARGONE);
-                // }
-                // java.util.Iterator<IBeacon> iterator = iBeacons.iterator();
-                // while (iterator.hasNext()) {
-                // IBeacon temp = iterator.next();
-                // if (beaconDataListA.contains(temp)) {
-                // beaconDataListA.set(beaconDataListA.indexOf(temp), temp);
-                // handler.sendEmptyMessage(UPDATEUI);
-                // } else {
-                // beaconDataListA.add(temp);
-                // handler.sendEmptyMessage(UPDATEUI);
-                // }
-                //
-                // }
+                boolean need_repaint = false;
+                for (IBeacon temp : iBeacons) {
+                    if (!PublicData.getInstance().checkBeaconSet.contains(temp.getBluetoothAddress())) {
+                        DBIbeancon dbIbeancon = new DBIbeancon(temp);
+                        dbIbeancon.setBeaconNumber(PublicData.getInstance().beacons.size());
+                        PublicData.getInstance().makeBeaconIcon(dbIbeancon);
+                        dbIbeancon.setLatitude(String.valueOf(PublicData.getInstance().getLatitude()));
+                        dbIbeancon.setLongitude(String.valueOf(PublicData.getInstance().getLongitude()));
+                        PublicData.getInstance().beacons.add(dbIbeancon);
+                        PublicData.getInstance().checkBeaconSet.add(temp.getBluetoothAddress());
+                        //mhandler.sendEmptyMessage(FIND_NEW_BEACON);
+                        PublicData.getInstance().saveCheckBeacon2Db(dbIbeancon);
+                        LatLng latLng = new LatLng(Double.valueOf(dbIbeancon.getLatitude()), Double.valueOf(dbIbeancon.getLongitude()));
+                        MarkerOptions options = new MarkerOptions();
+                        BitmapDescriptor descriptor = PublicData.getInstance().getBeaconIcon(dbIbeancon);
+                        if (descriptor != null) {
+                            options.position(latLng)
+                                    .icon(descriptor).zIndex(5);
+                            mBaiduMap.addOverlay(options);
+                        }
+                    } else {
+                        for (DBIbeancon dbIbeancon : PublicData.getInstance().beacons) {
+                            if (dbIbeancon.getBluetoothAddress().contains(temp.getBluetoothAddress())
+                                    && dbIbeancon.getRssi() < temp.getRssi()) {
+                                dbIbeancon.setIntRsst(temp.getRssi());
+                                if (!dbIbeancon.getLatitude().contains(String.valueOf(PublicData.getInstance().getLatitude())) || !dbIbeancon.getLongitude().contains(String.valueOf(PublicData.getInstance().getLongitude()))){
+                                    dbIbeancon.setLatitude(String.valueOf(PublicData.getInstance().getLatitude()));
+                                    dbIbeancon.setLongitude(String.valueOf(PublicData.getInstance().getLongitude()));
+                                    need_repaint = true;
+                                }
+                                boolean r = PublicData.getInstance().updateBeacon2Db(dbIbeancon);
+                                Log.d("update beacon", "" + r);
+                            }
+                        }
 
+                    }
+
+                    //
+                }
+                if (need_repaint)
+                    btMyloc.callOnClick();
             }
 
             @Override
@@ -432,27 +468,7 @@ public class MyActivity extends Activity implements
                 // TODO Auto-generated method stub
                 // beaconDataListA.addAll(iBeacons);
                 // handler.sendEmptyMessage(UPDATEUI);
-                Iterator<IBeacon> iterator = iBeacons.iterator();
-                while (iterator.hasNext()) {
-                    IBeacon temp = iterator.next();
-                    //Log.d("uuid",temp.getProximityUuid());
-//                    if(temp.getProximityUuid().contains("fda50693-a4e2-4fb1-afcf-c6eb07647825") && temp.getMajor() == 10001) {
-                    if(true) {
-                        if (!PublicData.getInstance().checkBeaconSet.contains(temp.getBluetoothAddress())) {
-                            scanView.setFindNewBeacon();
-                            Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-                            //vibrator.vibrate(1000);
-                            DBIbeancon dbIbeancon = new DBIbeancon(temp);
-                            dbIbeancon.setLatitude(String.valueOf(PublicData.getInstance().getLatitude()));
-                            dbIbeancon.setLongitude(String.valueOf(PublicData.getInstance().getLongitude()));
-                            PublicData.getInstance().beacons.add(dbIbeancon);
-                            PublicData.getInstance().checkBeaconSet.add(temp.getBluetoothAddress());
-                            mhandler.sendEmptyMessage(FIND_NEW_BEACON);
-                            PublicData.getInstance().saveCheckBeacon2Db(dbIbeancon);
-                        }
-                    }
-                    //
-                }
+
             }
 
             @Override
@@ -509,5 +525,16 @@ public class MyActivity extends Activity implements
         } catch (RemoteException e) {
             e.printStackTrace();
         }
+    }
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK){
+            finish();
+            if (PublicData.getInstance().start_activity != null){
+                PublicData.getInstance().start_activity.finish();
+            }
+            return false;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 }

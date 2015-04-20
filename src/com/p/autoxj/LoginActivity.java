@@ -52,7 +52,7 @@ public class LoginActivity extends Activity {
                 new ColorDrawable(getResources().getColor(android.R.color.transparent)));
         getActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.backcolor_norock));
         final Button button = (Button) findViewById(R.id.bt_login);
-        getSavedInfo();
+
         act_et = (EditText)findViewById(R.id.tv_act);
         psd_et = (EditText)findViewById(R.id.tv_psd);
         if(PublicData.getInstance().isHas_save_user()){
@@ -64,6 +64,10 @@ public class LoginActivity extends Activity {
             public void handleMessage(Message msg) {
                 if (msg.what == LOGIN_SUCCESS){
                     pro_dialog.dismiss();
+                    SharedPreferences ps = getSharedPreferences(getResources().getString(R.string.check_login_preference),MODE_PRIVATE);
+                    SharedPreferences.Editor editor = ps.edit();
+                    editor.putBoolean("FirstRun",false);
+                    editor.apply();
                     PublicData.getInstance().setLogin(true);
                     setResult(5);
                     finish();
@@ -146,7 +150,7 @@ public class LoginActivity extends Activity {
         editor.putBoolean("SaveUser",true);
         editor.putString("User",PublicData.getInstance().getUser());
         editor.putString("Psw",PublicData.getInstance().getPsw());
-        editor.commit();
+        editor.apply();
     }
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -163,18 +167,5 @@ public class LoginActivity extends Activity {
         Intent intent = new Intent(LoginActivity.this,NetworkActivity.class);
         startActivity(intent);
     }
-    public void getSavedInfo(){
-        SharedPreferences preferences = getSharedPreferences(getResources().getString(R.string.login_preference_name),MODE_PRIVATE);
-        if(preferences.getBoolean("SaveInfo", false)){
-            PublicData.getInstance().setIp(preferences.getString("Ip",""));
-            PublicData.getInstance().setPort(preferences.getString("Port", ""));
-            PublicData.getInstance().setHas_save_ip(true);
-        }else PublicData.getInstance().setHas_save_ip(false);
-        if(preferences.getBoolean("SaveUser", false)){
-            PublicData.getInstance().setUser(preferences.getString("User", ""));
-            PublicData.getInstance().setPsw(preferences.getString("Psw", ""));
-            PublicData.getInstance().setHas_save_user(true);
-        }else PublicData.getInstance().setHas_save_user(false);
 
-    }
 }

@@ -1,5 +1,6 @@
 package com.p.autoxj;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.database.Cursor;
@@ -11,12 +12,14 @@ import android.net.NetworkInfo;
 import android.os.Handler;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import com.baidu.mapapi.map.BitmapDescriptor;
+import com.baidu.mapapi.map.BitmapDescriptorFactory;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * Created by p on 2015/3/3.
@@ -25,10 +28,12 @@ public class PublicData extends Application {
     private static PublicData self;
     public ArrayList<DBIbeancon> beacons = new ArrayList<DBIbeancon>();
     public HashSet<String> checkBeaconSet = new HashSet<String>();
-    public HashSet<String> uploadBeaconSet = new HashSet<String>();
+    public CopyOnWriteArraySet<String> uploadBeaconSet = new CopyOnWriteArraySet<String>();
     public DataUtil du;
     private String ip;
+    public Activity start_activity = null;
     public MessageDigest md5_encriptor = null;
+    public HashMap<String,BitmapDescriptor> beaconIconHahsmap = new HashMap<String, BitmapDescriptor>();
     public boolean isHas_save_ip() {
         return has_save_ip;
     }
@@ -181,9 +186,50 @@ public class PublicData extends Application {
         }
         return false;
     }
+    public BitmapDescriptor getBeaconIcon(DBIbeancon ibeancon){
+        return beaconIconHahsmap.get(ibeancon.getBluetoothAddress());
+    }
+    public void makeBeaconIcon(DBIbeancon ibeancon){
+        if (beaconIconHahsmap.containsKey(ibeancon.getBluetoothAddress()))
+            return;
+        else {
+            Bitmap bitmap = createBeaconLocationBitmap(ibeancon.getBeaconNumber());
+            BitmapDescriptor descriptor = null;
+            if (bitmap != null) {
+                descriptor = BitmapDescriptorFactory.fromBitmap(bitmap);
+                beaconIconHahsmap.put(ibeancon.getBluetoothAddress(),descriptor);
+            }
+        }
+    }
+    public void freeAllBeaconIcon(){
+        Iterator iterator = beaconIconHahsmap.entrySet().iterator();
+        while (iterator.hasNext()){
+            Map.Entry entry = (Map.Entry) iterator.next();
+            BitmapDescriptor descriptor = (BitmapDescriptor)entry.getValue();
+            descriptor.recycle();
+        }
+        beaconIconHahsmap.clear();
+    }
     public String getImei() {
         return ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
                 .getDeviceId();
+    }
+    public boolean updateBeacon2Db(DBIbeancon ibeancon){
+        boolean result = true;
+        SQLiteDatabase db = du.getReadableDatabase();
+        // area text,type text,time text,val text
+
+        String sql = String.format("update unupbeacon set latitude='%s',longitude='%s', rssi='%s' where mac_id='%s'",ibeancon.getLatitude(),ibeancon.getLongitude(),ibeancon.getRssi(),ibeancon.getBluetoothAddress());
+        uploadBeaconSet.remove(ibeancon.getBluetoothAddress());
+        try {
+            db.execSQL(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            result = false;
+        } finally {
+            db.close();
+        }
+        return result;
     }
     public boolean saveCheckBeacon2Db(DBIbeancon iBeacon) {
         boolean result = true;
@@ -280,6 +326,8 @@ public class PublicData extends Application {
                     ibeacon.setLongitude(cursor.getString(cursor.getColumnIndex("longitude")));
 
                     beacons.add(ibeacon);
+                    ibeacon.setBeaconNumber(beacons.size());
+                    makeBeaconIcon(ibeacon);
                     Log.d("savebeacon",String.valueOf(beacons.size()));
                     checkBeaconSet.add(ibeacon.getBluetoothAddress());
                 }

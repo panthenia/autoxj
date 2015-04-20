@@ -40,16 +40,7 @@
 
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"/>
-        <Button
-                android:id="@+id/bt_upload"
-                android:layout_weight="1"
-                android:text="登录"
-                android:textColor="#ffffff"
-                android:background="@drawable/backcolor_norock"
 
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                />
         <Button
                 android:id="@+id/bt_mylocation"
                 android:layout_weight="1"
@@ -58,7 +49,24 @@
                 android:background="@drawable/backcolor_norock"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"/>
+        <Button
+                android:id="@+id/bt_cloc"
+                android:layout_weight="1"
+                android:text="所在地"
+                android:textColor="#ffffff"
+                android:background="@drawable/backcolor_norock"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"/>
+        <Button
+        android:id="@+id/bt_upload"
+        android:layout_weight="1"
+        android:text="切换用户"
+        android:textColor="#ffffff"
+        android:background="@drawable/backcolor_norock"
 
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        />
     </LinearLayout>
 
 </RelativeLayout>
