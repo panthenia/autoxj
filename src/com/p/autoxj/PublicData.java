@@ -14,11 +14,14 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import com.baidu.mapapi.map.BitmapDescriptor;
 import com.baidu.mapapi.map.BitmapDescriptorFactory;
+import com.baidu.mapapi.model.LatLng;
+import com.lef.scanner.IBeacon;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
@@ -26,8 +29,10 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public class PublicData extends Application {
     private static PublicData self;
-    public ArrayList<DBIbeancon> beacons = new ArrayList<DBIbeancon>();
-    public HashSet<String> checkBeaconSet = new HashSet<String>();
+    public CopyOnWriteArrayList<DBIbeancon> beacons = new CopyOnWriteArrayList<DBIbeancon>();
+    public CopyOnWriteArraySet<String> checkBeaconSet = new CopyOnWriteArraySet<String>();
+    public ConcurrentHashMap<String,DBIbeancon> beaconMap = new ConcurrentHashMap<String, DBIbeancon>();
+    public ConcurrentHashMap<String,HashSet<String>> beaconLocSet = new ConcurrentHashMap<String, HashSet<String>>();
     public CopyOnWriteArraySet<String> uploadBeaconSet = new CopyOnWriteArraySet<String>();
     public DataUtil du;
     private String ip;
@@ -193,7 +198,7 @@ public class PublicData extends Application {
         if (beaconIconHahsmap.containsKey(ibeancon.getBluetoothAddress()))
             return;
         else {
-            Bitmap bitmap = createBeaconLocationBitmap(ibeancon.getBeaconNumber());
+            Bitmap bitmap = createBeaconLocationBitmap(ibeancon.getBeaconNumber()+1);
             BitmapDescriptor descriptor = null;
             if (bitmap != null) {
                 descriptor = BitmapDescriptorFactory.fromBitmap(bitmap);
@@ -219,11 +224,11 @@ public class PublicData extends Application {
         SQLiteDatabase db = du.getReadableDatabase();
         // area text,type text,time text,val text
 
-        String sql = String.format("update unupbeacon set latitude='%s',longitude='%s', rssi='%s' where mac_id='%s'",ibeancon.getLatitude(),ibeancon.getLongitude(),ibeancon.getRssi(),ibeancon.getBluetoothAddress());
+        String sql = String.format("update unupbeacon set major='%s',minor='%s', latitude='%s',longitude='%s', rssi='%s' where mac_id='%s'",ibeancon.getMajor(),ibeancon.getMinor(),ibeancon.getLatitude(),ibeancon.getLongitude(),ibeancon.getRssi(),ibeancon.getBluetoothAddress());
         uploadBeaconSet.remove(ibeancon.getBluetoothAddress());
         try {
             db.execSQL(sql);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             result = false;
         } finally {
@@ -245,7 +250,7 @@ public class PublicData extends Application {
                 +"')";
         try {
             db.execSQL(sql);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             result = false;
         } finally {
@@ -258,9 +263,22 @@ public class PublicData extends Application {
     public void removeCheckedBeaconInDb(){
         SQLiteDatabase db = du.getReadableDatabase();
         String sql = "delete from unupbeacon";
+        String sql1 = "delete from beacon_location";
         try {
             db.execSQL(sql);
-        } catch (SQLException e) {
+            db.execSQL(sql1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            db.close();
+        }
+    }
+    public void saveBeaconLocation2Db(IBeacon iBeacon,LatLng latLng){
+        SQLiteDatabase db = du.getReadableDatabase();
+        String sql = "insert into beacon_location(mac_id,rssi,latitude,longitude) values('%s','%s','%s','%s')";
+        try {
+            db.execSQL(String.format(sql,iBeacon.getBluetoothAddress(),iBeacon.getRssi(),latLng.latitude,latLng.longitude));
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             db.close();
@@ -276,7 +294,7 @@ public class PublicData extends Application {
                 db.execSQL(sql);
             }
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             db.close();
@@ -326,13 +344,15 @@ public class PublicData extends Application {
                     ibeacon.setLongitude(cursor.getString(cursor.getColumnIndex("longitude")));
 
                     beacons.add(ibeacon);
+                    beaconMap.put(ibeacon.getBluetoothAddress(),ibeacon);
                     ibeacon.setBeaconNumber(beacons.size());
                     makeBeaconIcon(ibeacon);
                     Log.d("savebeacon",String.valueOf(beacons.size()));
                     checkBeaconSet.add(ibeacon.getBluetoothAddress());
                 }
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
+            Log.d("exception","yes");
         } finally {
             db.close();
         }

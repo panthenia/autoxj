@@ -28,6 +28,7 @@ import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 
 public class MyActivity extends Activity implements
@@ -45,6 +46,7 @@ public class MyActivity extends Activity implements
     public static final int START_UPLOAD = 10;
     private IBeaconManager iBeaconManager;
     ScanView scanView = null;
+    boolean goon_upload = true;
     Button btSee, btReset, btUpload, btMyloc, bt_Cloc;
     public LocationClient mLocationClient = null;
     public LocationClientOption locationClientOption = null;
@@ -53,22 +55,25 @@ public class MyActivity extends Activity implements
     public BDLocationListener myListener = new BDLocationListener() {
         @Override
         public void onReceiveLocation(BDLocation bdLocation) {
-//            Toast.makeText(MyActivity.this,"定位到位置："+""+bdLocation.getLongitude()+""+bdLocation.getLatitude(),Toast.LENGTH_LONG).show();
             //Log.d("定位到位置",""+bdLocation.getLongitude()+""+bdLocation.getLatitude());
-            PublicData.getInstance().setLatitude(bdLocation.getLatitude());
-            PublicData.getInstance().setLongitude(bdLocation.getLongitude());
-            PublicData.getInstance().setRadius(bdLocation.getRadius());
-            MyLocationData locData = new MyLocationData.Builder()
-                    .accuracy(bdLocation.getRadius())
-                            // 此处设置开发者获取到的方向信息，顺时针0-360
-                    .direction(100).latitude(bdLocation.getLatitude())
-                    .longitude(bdLocation.getLongitude()).build();
-            if (mBaiduMap != null) {
+            if (bdLocation.getLongitude()!=PublicData.getInstance().getLongitude() || bdLocation.getLatitude()!=PublicData.getInstance().getLatitude()){
+                //Toast.makeText(MyActivity.this,"定位位置："+bdLocation.getLatitude()+","+bdLocation.getLongitude(),Toast.LENGTH_SHORT).show();
+                PublicData.getInstance().setLatitude(bdLocation.getLatitude());
+                PublicData.getInstance().setLongitude(bdLocation.getLongitude());
+                PublicData.getInstance().setRadius(bdLocation.getRadius());
+                MyLocationData locData = new MyLocationData.Builder()
+                        .accuracy(bdLocation.getRadius())
+                                // 此处设置开发者获取到的方向信息，顺时针0-360
+                        .direction(100).latitude(bdLocation.getLatitude())
+                        .longitude(bdLocation.getLongitude()).build();
+                if (mBaiduMap != null) {
 
-                mBaiduMap.setMyLocationData(locData);
-                //mBaiduMap.setMapStatus(MapStatusUpdateFactory.zoomTo(18));
-                //mBaiduMap.setMapStatus(MapStatusUpdateFactory.newLatLng(new LatLng(bdLocation.getLatitude(), bdLocation.getLongitude())));
+                    mBaiduMap.setMyLocationData(locData);
+                    //mBaiduMap.setMapStatus(MapStatusUpdateFactory.zoomTo(18));
+                    //mBaiduMap.setMapStatus(MapStatusUpdateFactory.newLatLng(new LatLng(bdLocation.getLatitude(), bdLocation.getLongitude())));
+                }
             }
+
 
 //            Log.d("location",bdLocation.getProvince());
         }
@@ -102,6 +107,9 @@ public class MyActivity extends Activity implements
                 case LOGIN_SUCCESS:
                     PublicData.getInstance().setLogin(true);
                     break;
+//                case 100:
+//                    Toast.makeText(MyActivity.this, "beacon位置变更！", Toast.LENGTH_SHORT).show();
+//                    break;
 
             }
             super.handleMessage(msg);
@@ -130,9 +138,9 @@ public class MyActivity extends Activity implements
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while (true) {
+                while (goon_upload) {
                     try {
-                        Thread.sleep(1000 * 120);
+                        Thread.sleep(1000 * 60);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -208,7 +216,7 @@ public class MyActivity extends Activity implements
         locationClientOption = new LocationClientOption();
         locationClientOption.setOpenGps(true);
         locationClientOption.setCoorType("bd09ll");
-        locationClientOption.setScanSpan(1000);
+        locationClientOption.setScanSpan(3000);
         locationClientOption.setLocationMode(LocationClientOption.LocationMode.Hight_Accuracy);
         mLocationClient.setLocOption(locationClientOption);
         mLocationClient.start();
@@ -227,7 +235,9 @@ public class MyActivity extends Activity implements
                                 PublicData.getInstance().checkBeaconSet.clear();
                                 PublicData.getInstance().beacons.clear();
                                 PublicData.getInstance().uploadBeaconSet.clear();
-                                scanView.setFindNum(0);
+                                PublicData.getInstance().beaconMap.clear();
+                                PublicData.getInstance().beaconLocSet.clear();
+                                //scanView.setFindNum(0);
                                 PublicData.getInstance().removeCheckedBeaconInDb();
                                 PublicData.getInstance().freeAllBeaconIcon();
                                 mBaiduMap.clear();
@@ -263,7 +273,7 @@ public class MyActivity extends Activity implements
                     if (descriptor != null) {
                         options.position(latLng)
                                 .icon(descriptor).zIndex(5);
-                        Log.d("label", "label a beacon" + latLng.toString());
+                        //Toast.makeText(MyActivity.this,"重绘beacon",Toast.LENGTH_SHORT).show();
                         mBaiduMap.addOverlay(options);
                     }
                 }
@@ -280,12 +290,13 @@ public class MyActivity extends Activity implements
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(MyActivity.this,LoginActivity.class);
-                startActivityForResult(intent,6);
+                startActivityForResult(intent, 6);
             }
         });
         scanView = (ScanView) findViewById(R.id.scan_view);
         scanView.setFindNum(PublicData.getInstance().beacons.size());
-
+        goon_upload = true;
+        btMyloc.callOnClick();
         startUploadTHread();
     }
 
@@ -405,6 +416,7 @@ public class MyActivity extends Activity implements
         // TODO Auto-generated method stub
         super.onDestroy();
         mMapView.onDestroy();
+        goon_upload = false;
         mLocationClient.stop();
         if (iBeaconManager != null && iBeaconManager.isBound(this)) {
             iBeaconManager.unBind(this);
@@ -426,10 +438,15 @@ public class MyActivity extends Activity implements
                         DBIbeancon dbIbeancon = new DBIbeancon(temp);
                         dbIbeancon.setBeaconNumber(PublicData.getInstance().beacons.size());
                         PublicData.getInstance().makeBeaconIcon(dbIbeancon);
+                        HashSet<String> aset = new HashSet<String>();
+                        aset.add(String.valueOf(PublicData.getInstance().getLatitude())+String.valueOf(PublicData.getInstance().getLongitude()));
+                        PublicData.getInstance().beaconLocSet.put(temp.getBluetoothAddress(), aset);
                         dbIbeancon.setLatitude(String.valueOf(PublicData.getInstance().getLatitude()));
                         dbIbeancon.setLongitude(String.valueOf(PublicData.getInstance().getLongitude()));
+                        PublicData.getInstance().saveBeaconLocation2Db(temp,new LatLng(PublicData.getInstance().getLatitude(),PublicData.getInstance().getLongitude()));
                         PublicData.getInstance().beacons.add(dbIbeancon);
                         PublicData.getInstance().checkBeaconSet.add(temp.getBluetoothAddress());
+                        PublicData.getInstance().beaconMap.put(dbIbeancon.getBluetoothAddress(),dbIbeancon);
                         //mhandler.sendEmptyMessage(FIND_NEW_BEACON);
                         PublicData.getInstance().saveCheckBeacon2Db(dbIbeancon);
                         LatLng latLng = new LatLng(Double.valueOf(dbIbeancon.getLatitude()), Double.valueOf(dbIbeancon.getLongitude()));
@@ -441,17 +458,37 @@ public class MyActivity extends Activity implements
                             mBaiduMap.addOverlay(options);
                         }
                     } else {
-                        for (DBIbeancon dbIbeancon : PublicData.getInstance().beacons) {
-                            if (dbIbeancon.getBluetoothAddress().contains(temp.getBluetoothAddress())
-                                    && dbIbeancon.getRssi() < temp.getRssi()) {
-                                dbIbeancon.setIntRsst(temp.getRssi());
-                                if (!dbIbeancon.getLatitude().contains(String.valueOf(PublicData.getInstance().getLatitude())) || !dbIbeancon.getLongitude().contains(String.valueOf(PublicData.getInstance().getLongitude()))){
-                                    dbIbeancon.setLatitude(String.valueOf(PublicData.getInstance().getLatitude()));
-                                    dbIbeancon.setLongitude(String.valueOf(PublicData.getInstance().getLongitude()));
-                                    need_repaint = true;
-                                }
+                        if (PublicData.getInstance().beaconMap.containsKey(temp.getBluetoothAddress())){
+                            DBIbeancon dbIbeancon = PublicData.getInstance().beaconMap.get(temp.getBluetoothAddress());
+                            dbIbeancon.setIntRsst(temp.getRssi());
+                            dbIbeancon.setMajor(String.valueOf(temp.getMajor()));
+                            dbIbeancon.setMinor(String.valueOf(temp.getMinor()));
+                            HashSet<String> aset = PublicData.getInstance().beaconLocSet.get(temp.getBluetoothAddress());
+                            if (aset == null){
+                                aset = new HashSet<String>();
+                                PublicData.getInstance().beaconLocSet.put(temp.getBluetoothAddress(),aset);
+                            }
+                            if (!aset.contains(String.valueOf(PublicData.getInstance().getLatitude())+String.valueOf(PublicData.getInstance().getLongitude()))){
+                                double k;
+                                if (temp.getRssi() > dbIbeancon.getRssi()){
+                                    k = 0.3;
+                                }else k = 0.7;
+                                double newla = Double.valueOf(dbIbeancon.getLatitude())*(1.0-k)+PublicData.getInstance().getLatitude()*k;
+                                double newlo = Double.valueOf(dbIbeancon.getLongitude())*(1.0-k)+PublicData.getInstance().getLongitude()*k;
+                                dbIbeancon.setLatitude(String.valueOf(newla));
+                                dbIbeancon.setLongitude(String.valueOf(newlo));
+                                aset.add(String.valueOf(PublicData.getInstance().getLatitude())+String.valueOf(PublicData.getInstance().getLongitude()));
+                                PublicData.getInstance().saveBeaconLocation2Db(temp, new LatLng(PublicData.getInstance().getLatitude(), PublicData.getInstance().getLongitude()));
+//                                for (DBIbeancon ibeancon:PublicData.getInstance().beacons){
+//                                    if (ibeancon.getBluetoothAddress().contains(temp.getBluetoothAddress())){
+//                                        ibeancon.setLatitude(String.valueOf(PublicData.getInstance().getLatitude()));
+//                                        ibeancon.setLongitude(String.valueOf(PublicData.getInstance().getLongitude()));
+//                                    }
+//                                }
+                                need_repaint = true;
                                 boolean r = PublicData.getInstance().updateBeacon2Db(dbIbeancon);
                                 Log.d("update beacon", "" + r);
+                                //mhandler.sendEmptyMessage(100);
                             }
                         }
 
@@ -461,6 +498,7 @@ public class MyActivity extends Activity implements
                 }
                 if (need_repaint)
                     btMyloc.callOnClick();
+
             }
 
             @Override

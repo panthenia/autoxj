@@ -10,6 +10,7 @@ import android.widget.TextView;
 import com.lef.scanner.IBeacon;
 
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class AroundListAdapter extends RecyclerView.Adapter<AroundListAdapter.ViewHolder> {
     private ArrayList<DBIbeancon> mIBeaconDataset;
@@ -103,7 +104,7 @@ public class AroundListAdapter extends RecyclerView.Adapter<AroundListAdapter.Vi
         return R.drawable.icon_rssi1;
     }
 
-    public void updateIBeaconData(ArrayList<DBIbeancon> data) {
+    public void updateIBeaconData(CopyOnWriteArrayList<DBIbeancon> data) {
         ArrayList<DBIbeancon> newData = new ArrayList<DBIbeancon>();
         newData.addAll(data);
         mIBeaconDataset = newData;

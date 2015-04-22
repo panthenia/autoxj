@@ -25,6 +25,7 @@ public class DataUtil extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         // TODO Auto-generated method stub
         db.execSQL(ctx.getString(R.string.create_unupload_beacon_table));
+        db.execSQL(ctx.getString(R.string.create_beacon_location_table));
     }
 
     @Override

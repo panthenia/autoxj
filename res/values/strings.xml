@@ -10,4 +10,8 @@
     <string name="create_unupload_beacon_table">create table if not exists unupbeacon
 	    (mac_id text,uuid text, rssi text,  major  text,   minor  text,latitude text, longitude text);
     </string>
+    <string name="create_beacon_location_table">
+        create table if not exists beacon_location
+	    (mac_id text,rssi text,latitude text, longitude text);
+    </string>
 </resources>

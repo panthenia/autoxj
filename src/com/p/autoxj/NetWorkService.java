@@ -172,7 +172,7 @@ public class NetWorkService extends IntentService {
                             for (IBeacon ibeacon : upBeacons) {
                                 publicData.uploadBeaconSet.add(ibeacon.getBluetoothAddress());
                             }
-                            PublicData.getInstance().removeUploadCheckedBeaconInDb();
+                            //PublicData.getInstance().removeUploadCheckedBeaconInDb();
                             msg.what = MyActivity.REQUEST_FINISH_SUCCESS;
                             ahandler.sendMessage(msg);
                         } else {
@@ -231,6 +231,8 @@ public class NetWorkService extends IntentService {
                     } catch (JSONException e) {
                         message.what = LoginActivity.SERVER_ERR;
                         ahandler.sendMessage(message);
+                        e.printStackTrace();
+                    } catch (Exception e){
                         e.printStackTrace();
                     }
                 } 
