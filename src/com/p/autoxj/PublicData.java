@@ -19,6 +19,7 @@ import com.lef.scanner.IBeacon;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -36,6 +37,7 @@ public class PublicData extends Application {
     public CopyOnWriteArraySet<String> uploadBeaconSet = new CopyOnWriteArraySet<String>();
     public DataUtil du;
     private String ip;
+    public SimpleDateFormat dateFormat = new SimpleDateFormat("yy-MM-dd-hh-mm");
     public Activity start_activity = null;
     public MessageDigest md5_encriptor = null;
     public HashMap<String,BitmapDescriptor> beaconIconHahsmap = new HashMap<String, BitmapDescriptor>();
@@ -260,6 +262,7 @@ public class PublicData extends Application {
         return result;
 
     }
+
     public void removeCheckedBeaconInDb(){
         SQLiteDatabase db = du.getReadableDatabase();
         String sql = "delete from unupbeacon";
@@ -275,9 +278,11 @@ public class PublicData extends Application {
     }
     public void saveBeaconLocation2Db(IBeacon iBeacon,LatLng latLng){
         SQLiteDatabase db = du.getReadableDatabase();
-        String sql = "insert into beacon_location(mac_id,rssi,latitude,longitude) values('%s','%s','%s','%s')";
+        String sql = "insert into beacon_location(mac_id,rssi,latitude,longitude,date) values('%s','%s','%s','%s','%s')";
         try {
-            db.execSQL(String.format(sql,iBeacon.getBluetoothAddress(),iBeacon.getRssi(),latLng.latitude,latLng.longitude));
+//            db.execSQL(String.format(sql,iBeacon.getBluetoothAddress(),iBeacon.getRssi(),latLng.latitude,latLng.longitude,dateFormat.format(new   java.util.Date())));
+            db.execSQL(String.format(sql,iBeacon.getBluetoothAddress(),iBeacon.getRssi(),
+                    latLng.latitude,latLng.longitude,String.valueOf(System.currentTimeMillis())));
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -343,9 +348,10 @@ public class PublicData extends Application {
                     ibeacon.setLatitude(cursor.getString(cursor.getColumnIndex("latitude")));
                     ibeacon.setLongitude(cursor.getString(cursor.getColumnIndex("longitude")));
 
-                    beacons.add(ibeacon);
+
                     beaconMap.put(ibeacon.getBluetoothAddress(),ibeacon);
                     ibeacon.setBeaconNumber(beacons.size());
+                    beacons.add(ibeacon);
                     makeBeaconIcon(ibeacon);
                     Log.d("savebeacon",String.valueOf(beacons.size()));
                     checkBeaconSet.add(ibeacon.getBluetoothAddress());
